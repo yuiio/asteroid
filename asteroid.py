@@ -46,7 +46,7 @@ GAME_SCALE = 4  # 4
 BULLETS_PER_SECOND = 4
 
 # Pyxel
-SHOW_CURSOR = 0  # 1 = mouse cursor is visible
+SHOW_CURSOR = False  # 1 = mouse cursor is visible
 ## sounds
 CHAN_FIRE = 0  # Ship bullet
 CHAN_MAIN = 1  # play sound ambiance and death ship
@@ -845,7 +845,8 @@ class App:
     highscores = [15000, 11250, 7500, 3750, 0000]  # default hi-scores
 
     def __init__(self):
-        px.init(SCREEN_W, SCREEN_H, caption="Asteroid", fullscreen=False)
+        px.init(SCREEN_W, SCREEN_H, title="Asteroid")
+        px.fullscreen(True)
         px.load(os.path.join("assets", "asteroid.pyxres"))
 
         self.pt = time()  # Buffer previous time
@@ -1058,11 +1059,11 @@ class App:
             self.update_win()
 
     def update_title(self):
-        if px.btnp(px.KEY_ENTER):
+        if px.btnp(px.KEY_RETURN):
             self.change_state(STATE.newlevel)
 
     def update_gameover(self):
-        if px.btnp(px.KEY_ENTER):
+        if px.btnp(px.KEY_RETURN):
             self.change_state(STATE.title)
 
     def update_win(self):
@@ -1070,17 +1071,17 @@ class App:
         if not len(self.gfx):
             self.ending_gfx()
 
-        if px.btnp(px.KEY_ENTER):
+        if px.btnp(px.KEY_RETURN):
             self.change_state(STATE.title)
 
     def update_newlevel(self):
-        if self.is_countdown_ended() or px.btnp(px.KEY_ENTER, 15, 15):
+        if self.is_countdown_ended() or px.btnp(px.KEY_RETURN, 15, 15):
             self.change_state(STATE.play)
 
     def update_retry(self):
         if self.is_countdown_ended():
             self.change_state(STATE.gameover)
-        elif px.btnp(px.KEY_ENTER, 15, 15):
+        elif px.btnp(px.KEY_RETURN, 15, 15):
             self.change_state(STATE.downscore)
 
     def update_downscore(self):
