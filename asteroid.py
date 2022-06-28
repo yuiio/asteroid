@@ -3,8 +3,11 @@
 #
 # Author : yuiio@sotodesign.org
 
+# History
+# - 2022-06-28
+# Update to run with pyxel v1.7.1 (thx [kra53n](https://github.com/kra53n))
 
-# 2021-04-13
+# - 2021-04-13
 # Post game jam version, adding :
 
 
@@ -46,7 +49,7 @@ GAME_SCALE = 4  # 4
 BULLETS_PER_SECOND = 4
 
 # Pyxel
-SHOW_CURSOR = False  # 1 = mouse cursor is visible
+SHOW_CURSOR = False  # mouse cursor visibility
 ## sounds
 CHAN_FIRE = 0  # Ship bullet
 CHAN_MAIN = 1  # play sound ambiance and death ship
