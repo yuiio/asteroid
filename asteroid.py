@@ -147,10 +147,10 @@ class V2:
 
     def __init__(self, *args):
         """ Create a vector, example: v = V2(1,2) """
-        if len(args) == 0:
-            self.values = (0, 0)
-        else:
+        if len(args):
             self.values = args
+        else:
+            self.values = (0, 0)
 
     @property
     def x(self):
@@ -213,16 +213,15 @@ class V2:
         2D vector and rotates by the passed value in degrees.  Otherwise,
         assumes the passed value is a list acting as a matrix which rotates the vector.
         """
-        if len(args) == 1 and type(args[0]) == type(1) or type(args[0]) == type(1.0):
+        if len(args) == 1 and isinstance(args[0], float | int):
             # So, if rotate is passed an int or a float...
             if len(self) != 2:
                 raise ValueError("Rotation axis not defined for greater than 2D vector")
             return self._rotate2D(*args)
         elif len(args) == 1:
             matrix = args[0]
-            if not all(len(row) == len(v) for row in matrix) or not len(matrix) == len(
-                self
-            ):
+            v_len = len(v)
+            if not all(map(lambda row: len(row) == v_len, matrix)) or not len(matrix) == len(self):
                 raise ValueError(
                     "Rotation matrix must be square and same dimensions as vector"
                 )
@@ -352,7 +351,7 @@ class Particle:
 
     @property
     def is_dead(self):
-        return True if self.lifespan <= 0 else False
+        return self.lifespan <= 0
 
     def update(self, dt):
         self.lifespan -= dt
@@ -360,9 +359,8 @@ class Particle:
         self.pos += self.vel * dt
 
     def draw(self):
-        pos = self.pos
         dim = Particle.sizes[self.radius]
-        px.rect(*pos, *dim, self.color)
+        px.rect(*self.pos, *dim, self.color)
 
 
 class ScreenFlash:
@@ -862,7 +860,7 @@ class App:
     def create_asteroids(self, level):
         asteroid_size = min(5, level + 1)  # can be 0 to 5
         asteroid_number = min(2, level) + level // 5  # 1,2,2,2,3
-        for i in range(asteroid_number):
+        for _ in range(asteroid_number):
             Asteroid(
                 V2(
                     random.uniform(-10, 10) + random.randint(0, 1) * SCREEN_W,
@@ -1144,7 +1142,7 @@ class App:
 
         # NEW LEVEL
         # if there is nothing left then change level
-        if not (len(Asteroid.asteroids)) and not (len(Ovni.ovnis)):
+        if not (len(Asteroid.asteroids) or len(Ovni.ovnis)):
             self.change_state(STATE.newlevel)
 
     def draw(self):
