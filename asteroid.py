@@ -904,21 +904,11 @@ class App:
         for bullet in OvniBullet.bullets:
             bullet.update(dt)
 
-        match self.state:
-            case STATE.play:
-                self.update_play(dt)
-            case STATE.title:
-                self.update_title()
-            case STATE.newlevel:
-                self.update_newlevel()
-            case STATE.retry:
-                self.update_retry()
-            case STATE.downscore:
-                self.update_downscore()
-            case STATE.gameover:
-                self.update_gameover()
-            case STATE.win:
-                self.update_win()
+        states = ('play', dt), ('title', ), ('newlevel', ), ('retry', ), ('downscore', ), ('gameover', ), ('win', )
+        for state in states:
+            if self.state == STATE[state[0]]:
+                exec(f'self.update_{state[0]}(*state[1:])')
+                break
 
     def update_title(self):
         if px.btnp(px.KEY_RETURN):
