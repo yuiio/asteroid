@@ -4,13 +4,14 @@
 # Author : yuiio@sotodesign.org
 
 # History
-# -2022-06-30
+# -2022-06-30 - v1.0.2
 # * Replace vector library
+# * No more copies in collision loops
 
-# - 2022-06-28
+# - 2022-06-28 - v1.0.1
 # Update to run with pyxel v1.7.1 (thx [kra53n](https://github.com/kra53n))
 
-# - 2021-04-13
+# - 2021-04-13 - v1.0.0
 # Post game jam version, adding :
 
 
