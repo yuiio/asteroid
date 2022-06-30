@@ -4,6 +4,9 @@
 # Author : yuiio@sotodesign.org
 
 # History
+# -2022-06-30
+# * Replace vector library
+
 # - 2022-06-28
 # Update to run with pyxel v1.7.1 (thx [kra53n](https://github.com/kra53n))
 
@@ -33,13 +36,15 @@
 #   * Music for victory ending
 
 
-import os
 import math
+import os
 import random
 from enum import Enum
 from time import time
+
 import pyxel as px
 
+from vector import Vector2D as V2
 
 # Game
 SCREEN_W = 128
@@ -142,150 +147,6 @@ def are_collided(obj1, obj2):
     return (obj1.radius + obj2.radius) * (obj1.radius + obj2.radius) >= dist_square
 
 
-class V2:
-    """A simple 2d vector class"""
-
-    def __init__(self, *args):
-        """ Create a vector, example: v = V2(1,2) """
-        if len(args):
-            self.values = args
-        else:
-            self.values = (0, 0)
-
-    @property
-    def x(self):
-        return self.values[0]
-
-    @x.setter
-    def x(self, value):
-        x = value
-        y = self.values[1]
-        self.values = (x, y)
-
-    @property
-    def y(self):
-        return self.values[1]
-
-    @y.setter
-    def y(self, value):
-        y = value
-        x = self.values[0]
-        self.values = (x, y)
-
-    @staticmethod
-    def angle_between(v1, v2):
-        """Returns the angle in radians between two vectors.
-        Example : d = Vector.angle_between(Vector(1,2), Vector(3,4))"""
-        v1 = v1.normalize()
-        v2 = v2.normalize()
-        return math.acos(v1.inner(v2))
-
-    @staticmethod
-    def dist_between(v1, v2):
-        """ Returns the distance betweeb two vector) """
-        dist = v2 - v1
-        return dist.norm()
-
-    def copy(self):
-        return V2(*self.values)
-
-    def norm(self):
-        """ Returns the norm (length, magnitude) of the vector """
-        return math.sqrt(sum(comp ** 2 for comp in self))
-
-    def argument(self):
-        """ Returns the argument of the vector, the angle clockwise from +y."""
-        arg_in_rad = math.acos(V2(0, 1) * self / self.norm())
-        arg_in_deg = math.degrees(arg_in_rad)
-        if self.values[0] < 0:
-            return 360 - arg_in_deg
-        else:
-            return arg_in_deg
-
-    def normalize(self):
-        """ Returns a normalized unit vector """
-        norm = self.norm()
-        normed = tuple(comp / norm for comp in self)
-        return V2(*normed)
-
-    def rotate(self, *args):
-        """Rotate this vector. If passed a number, assumes this is a
-        2D vector and rotates by the passed value in degrees.  Otherwise,
-        assumes the passed value is a list acting as a matrix which rotates the vector.
-        """
-        if len(args) == 1 and isinstance(args[0], float | int):
-            # So, if rotate is passed an int or a float...
-            if len(self) != 2:
-                raise ValueError("Rotation axis not defined for greater than 2D vector")
-            return self._rotate2D(*args)
-        elif len(args) == 1:
-            matrix = args[0]
-            v_len = len(v)
-            if not all(map(lambda row: len(row) == v_len, matrix)) or not len(matrix) == len(self):
-                raise ValueError(
-                    "Rotation matrix must be square and same dimensions as vector"
-                )
-            return self.matrix_mult(matrix)
-
-    def _rotate2D(self, theta):
-        """Rotate this vector by theta in degrees.
-
-        Returns a new vector.
-        """
-        theta = math.radians(theta)
-        # Just applying the 2D rotation matrix
-        dc, ds = math.cos(theta), math.sin(theta)
-        x, y = self.values
-        x, y = dc * x - ds * y, ds * x + dc * y
-        return V2(x, y)
-
-    def inner(self, other):
-        """Returns the dot product (inner product) of self and other vector"""
-        return sum(a * b for a, b in zip(self, other))
-
-    def __mul__(self, other):
-        """Returns the dot product of self and other if multiplied
-        by another Vector.  If multiplied by an int or float,
-        multiplies each component by other.
-        """
-        if type(other) == type(self):
-            return self.inner(other)
-        elif type(other) == type(1) or type(other) == type(1.0):
-            product = tuple(a * other for a in self)
-            return V2(*product)
-
-    def __rmul__(self, other):
-        """ Called if 4*self for instance """
-        return self.__mul__(other)
-
-    def __div__(self, other):
-        if type(other) == type(1) or type(other) == type(1.0):
-            divided = tuple(a / other for a in self)
-            return V2(*divided)
-
-    def __add__(self, other):
-        """ Returns the vector addition of self and other """
-        added = tuple(a + b for a, b in zip(self, other))
-        return V2(*added)
-
-    def __sub__(self, other):
-        """ Returns the vector difference of self and other """
-        subbed = tuple(a - b for a, b in zip(self, other))
-        return V2(*subbed)
-
-    def __iter__(self):
-        return self.values.__iter__()
-
-    def __len__(self):
-        return len(self.values)
-
-    def __getitem__(self, key):
-        return self.values[key]
-
-    def __repr__(self):
-        return str(self.values)
-
-
 class Delay:
     def __init__(self, func, delay=0):
         self.start = time() + delay
@@ -377,8 +238,10 @@ class ParticleImplosion:
             size = 1
             dist = random.randint(30, 40)
             vel = V2(-dist, 0)
-            vel = vel.rotate(random.uniform(0, 360))
-            acc = vel.normalize() * acceleration
+            vel.rotate(random.uniform(0, DOUBLE_PI))
+            acc = vel.copy()
+            acc.normalize()
+            acc.mul(acceleration)
             ppos = pos - vel
             self.particles.append(Particle(ppos, size, vel, acc, duration, color))
 
@@ -404,9 +267,11 @@ class ParticlesExplosion:
             size = random.randint(1, 3)
             dist = random.randint(60, 80)  # distance per seconds
             vel = V2(dist, 0)
-            vel = vel.rotate(random.uniform(0, 360))
-            acc = vel.normalize() * acceleration  # deceleration
-            self.particles.append(Particle(pos, size, vel, acc, duration, color))
+            vel.rotate(random.uniform(0, DOUBLE_PI))
+            acc = vel.copy()
+            acc.normalize()
+            acc.mul(acceleration)  # deceleration
+            self.particles.append(Particle(pos.copy(), size, vel, acc, duration, color))
 
     def update(self, dt):
         for p in self.particles:
@@ -489,11 +354,10 @@ class Spaceship:
         self.points = [None for i in range(len(self._points))]  # points for drawing
 
         self.orientation = PI + HALF_PI
-        self.pos = pos  # - self.center  # as v2
+        self.pos = pos
 
         self.speed_turn = 0.15  # angle in radian
         self.vel = V2()
-        # self.acc = V2()
         self.power = 1.8
         self.reloaded = 1
 
@@ -656,7 +520,7 @@ class Asteroid:
 
         dist = random.randint(10, 30 - (3 * self.size))  # distance per seconds
         self.vel = V2(dist, 0)
-        self.vel = self.vel.rotate(random.uniform(0, 360))
+        self.vel.rotate(random.uniform(0, DOUBLE_PI))
 
         self.orientation = random.uniform(0, DOUBLE_PI)
         self.speed_rotation = random.uniform(-2, 2)
@@ -692,7 +556,7 @@ class Asteroid:
     def hit(self):
         if self.size > 0:
             for i in range(2):
-                Asteroid(self.pos, self.size - 1)
+                Asteroid(self.pos.copy(), self.size - 1)
         self.die()
 
     def die(self):
@@ -780,8 +644,8 @@ class Ovni:
                 )  # every 3 seconds
             if self.change_direction == 1:
                 self.change_direction = 0
-                angle = random.randint(30, 45)
-                self.vel = self.vel.rotate(random.choice((-angle, angle)))
+                angle = random.uniform(PI / 6, PI / 4)  # PI/6 = 30°, PI/4 = 45°
+                self.vel.rotate(random.choice((-angle, angle)))
 
             # Screen bounds
             bound_screen(self.pos, self.radius)
@@ -808,7 +672,8 @@ class Ovni:
                     bullet_pos = self.lines[0][4]  # ovni rigth
             else:
                 bullet_pos = self.lines[0][5]  # ovni bottom
-            bullet_orientation = (ship.pos - bullet_pos).normalize()
+            bullet_orientation = ship.pos - bullet_pos
+            bullet_orientation.normalize()
             OvniBullet(
                 bullet_pos,
                 bullet_orientation,
@@ -899,7 +764,7 @@ class App:
         self.change_state(STATE.retry)
 
     def asteroid_death(self, asteroid):
-        self.gfx.append(ParticlesExplosion(asteroid.pos.copy()))
+        self.gfx.append(ParticlesExplosion(asteroid.pos))
         px.play(CHAN_DESTROY, random.randint(1, 3))
         asteroid.hit()
         asteroid_points = 200 - asteroid.size * 10
@@ -1196,5 +1061,5 @@ class App:
         px.text(SCREEN_W - (80 / 2), 3, f"Level : {self.level}", GREY)
 
 
-if __name__ == "__main__":
-    App()
+# if __name__ == "__main__": # Can't do a "pyxel pacakge" with this line
+App()
