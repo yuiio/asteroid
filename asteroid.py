@@ -1011,19 +1011,10 @@ class App:
     def draw(self):
         px.cls(0)
 
-        for asteroid in Asteroid.asteroids:
-            asteroid.draw()
-
-        for bullet in Bullet.bullets:
-            bullet.draw()
-
-        for effect in self.gfx:
-            effect.draw()
-
-        for ovni in Ovni.ovnis:
-            ovni.draw()
-        for bullet in OvniBullet.bullets:
-            bullet.draw()
+        objs = (Asteroid.asteroids, Bullet.bullets, self.gfx, Ovni.ovnis, OvniBullet.bullets)
+        for obj in objs:
+            for elem in obj:
+                elem.draw()
 
         if self.state == STATE.play:
             self.ship.draw()
