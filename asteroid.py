@@ -378,17 +378,17 @@ class Spaceship:
     def get_direction(self, angle):
         return V2(math.cos(angle), math.sin(angle))
 
+    def update_spaceship_orientation(self, key, speed_turn, cond, new_orientation):
+        if px.btnp(key, 1, 1):
+            self.orientation += speed_turn
+            if cond:
+                self.orientation = new_orientation
+
     def update(self, dt):
 
         # Change spaceship orientation
-        if px.btnp(px.KEY_LEFT, 1, 1):
-            self.orientation -= self.speed_turn
-            if self.orientation < 0:
-                self.orientation = DOUBLE_PI
-        elif px.btnp(px.KEY_RIGHT, 1, 1):
-            self.orientation += self.speed_turn
-            if self.orientation > DOUBLE_PI:
-                self.orientation = 0
+        self.update_spaceship_orientation(px.KEY_LEFT, -self.speed_turn, self.orientation < 0, DOUBLE_PI)
+        self.update_spaceship_orientation(px.KEY_RIGHT, self.speed_turn, self.orientation > DOUBLE_PI, 0)
 
         # Thrust
         thrust = V2()
