@@ -974,26 +974,26 @@ class App:
                     px.sound(12).speed -= 1
 
         # HANDLE COLLISIONS
-        for bullet in Bullet.bullets.copy():
+        for bullet in reversed(Bullet.bullets):
             # Check if bullets hit asteroids
-            for asteroid in Asteroid.asteroids.copy():
+            for asteroid in reversed(Asteroid.asteroids):
                 if are_collided(bullet, asteroid):
                     bullet.hit()
                     self.asteroid_death(asteroid)
             # Check if bullets hit ovnis
-            for ovni in Ovni.ovnis.copy():
+            for ovni in reversed(Ovni.ovnis):
                 if are_collided(bullet, ovni):
                     bullet.hit()
                     self.ovni_death(ovni)
 
         # Check if asteroid hit ship
-        for asteroid in Asteroid.asteroids.copy():
+        for asteroid in reversed(Asteroid.asteroids):
             if are_collided(asteroid, self.ship):
                 self.ship_death()
                 break
 
         # Check if ovnis hit ship
-        for ovni in Ovni.ovnis.copy():
+        for ovni in reversed(Ovni.ovnis):
             if are_collided(ovni, self.ship) and ovni.can_fire:
                 self.ship_death()
                 break
