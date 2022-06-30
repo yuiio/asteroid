@@ -118,14 +118,12 @@ def bound_screen(point, radius):
 
 
 def is_out_screen(point, radius):
-    if (
+    return (
         point.x + radius < 0
         or point.x >= SCREEN_W + radius
         or point.y + radius < 0
         or point.y - radius >= SCREEN_H
-    ):
-        return True
-    return False
+    )
 
 
 def rotate(origin, point, angle):
@@ -183,10 +181,12 @@ class BonusFx:
             self.over = True
 
     def draw(self):
+        cond = lambda coeff: self.lifespan < self.duration * coeff
+
         color = WHITE
-        if self.lifespan < self.duration * 0.125:
+        if cond(0.125):
             color = DARK_BLUE
-        elif self.lifespan < self.duration * 0.25:
+        elif cond(0.25):
             color = GREY
 
         pad_dim = 9 / self.duration  # max pad  = 8
@@ -378,17 +378,17 @@ class Spaceship:
     def get_direction(self, angle):
         return V2(math.cos(angle), math.sin(angle))
 
+    def update_spaceship_orientation(self, key, speed_turn, cond, new_orientation):
+        if px.btnp(key, 1, 1):
+            self.orientation += speed_turn
+            if cond:
+                self.orientation = new_orientation
+
     def update(self, dt):
 
         # Change spaceship orientation
-        if px.btnp(px.KEY_LEFT, 1, 1):
-            self.orientation -= self.speed_turn
-            if self.orientation < 0:
-                self.orientation = DOUBLE_PI
-        elif px.btnp(px.KEY_RIGHT, 1, 1):
-            self.orientation += self.speed_turn
-            if self.orientation > DOUBLE_PI:
-                self.orientation = 0
+        self.update_spaceship_orientation(px.KEY_LEFT, -self.speed_turn, self.orientation < 0, DOUBLE_PI)
+        self.update_spaceship_orientation(px.KEY_RIGHT, self.speed_turn, self.orientation > DOUBLE_PI, 0)
 
         # Thrust
         thrust = V2()
@@ -549,14 +549,14 @@ class Asteroid:
         self.update_points()
 
     def draw(self):
-        if not None in self.points:
+        if None not in self.points:
             for p in range(1, len(self.points)):
                 px.line(*self.points[p - 1], *self.points[p], GREY)
             px.line(*self.points[p], *self.points[0], GREY)
 
     def hit(self):
         if self.size > 0:
-            for i in range(2):
+            for _ in range(2):
                 Asteroid(self.pos.copy(), self.size - 1)
         self.die()
 
@@ -663,7 +663,7 @@ class Ovni:
         if self.reloaded < 1:
             bullet_per_sec = 0.75
             self.reloaded = min(1, self.reloaded + dt * bullet_per_sec)
-        if self.reloaded == 1 and state_game == STATE.play and self.can_fire:
+        if self.reloaded and state_game == STATE.play and self.can_fire:
             self.reloaded = 0
 
             if ship.pos.y < self.pos.y:
@@ -793,9 +793,7 @@ class App:
         # - Constant COUNTDOWN set the duration in seconds
         # - And use this function to know when the countdown is over
         self.countdown = COUNTDOWN - 1 - int(time() - self.start_countdown)
-        if self.countdown < 0:
-            return True
-        return False
+        return self.countdown < 0
 
     def print_highscores_at_line(self, start_line):
         # print high scores table
@@ -825,56 +823,52 @@ class App:
         if previous_state == STATE.downscore and self.state == STATE.newlevel:
             self.level -= 1  # To keep same level when enter STATE.newlevel
 
-        # Opening
-        if self.state == STATE.title:
-            self.score = 0
-            self.score_level = 0
-            self.level = 0
-            self.create_asteroids(3)  # Decoration only for eyes at start
-            px.stop()  # Stop all sounds
-
-        if self.state == STATE.newlevel:
-
-            if self.level == 0:  # if coming from opening ...
-                Asteroid.asteroids.clear()  # ... clear decoration
-
-            self.level += 1
-
-            px.sound(12).speed = max(
-                13, px.sound(12).speed
-            )  # add a minimum delay for respawn safely
-            px.play(CHAN_MAIN, 12, loop=True)
-
-            if self.level > 5:
-                self.state = STATE.win
-            else:
-                if previous_state == STATE.downscore:
-                    Asteroid.asteroids.clear()
-                # Let'start a new level
+        match self.state:
+            # Opening
+            case STATE.title:
+                self.score = 0
                 self.score_level = 0
-                self.center_spaceship()
-                self.create_asteroids(self.level)
-                self.countdown = COUNTDOWN
+                self.level = 0
+                self.create_asteroids(3)  # Decoration only for eyes at start
+                px.stop()  # Stop all sounds
+            case STATE.newlevel:
+                if self.level == 0:  # if coming from opening ...
+                    Asteroid.asteroids.clear()  # ... clear decoration
+
+                self.level += 1
+
+                px.sound(12).speed = max(
+                    13, px.sound(12).speed
+                )  # add a minimum delay for respawn safely
+                px.play(CHAN_MAIN, 12, loop=True)
+
+                if self.level > 5:
+                    self.state = STATE.win
+                else:
+                    if previous_state == STATE.downscore:
+                        Asteroid.asteroids.clear()
+                    # Let'start a new level
+                    self.score_level = 0
+                    self.center_spaceship()
+                    self.create_asteroids(self.level)
+                    self.countdown = COUNTDOWN
+                    self.start_countdown = time()
+            case STATE.retry:
+                for ovni in Ovni.ovnis:
+                    ovni.life_span = 0
+                    ovni.can_fire = False
+
                 self.start_countdown = time()
-
-        if self.state == STATE.retry:
-            for ovni in Ovni.ovnis:
-                ovni.life_span = 0
-                ovni.can_fire = False
-
-            self.start_countdown = time()
-            self.score_new = self.score - self.score_level
-            self.score_level = 0
-
-        if self.state == STATE.gameover or self.state == STATE.win:
-            # Get the 5 highest scores
-            self.highscores.append(self.score)
-            self.highscores.sort(reverse=True)
-            self.highscores = self.highscores[:5]
-
-        if self.state == STATE.win:
-            px.stop(1)  # Stop playing game music
-            px.playm(4, loop=True)
+                self.score_new = self.score - self.score_level
+                self.score_level = 0
+            case STATE.gameover | STATE.win:
+                # Get the 5 highest scores
+                self.highscores.append(self.score)
+                self.highscores.sort(reverse=True)
+                self.highscores = self.highscores[:5]
+            case STATE.win:
+                px.stop(1)  # Stop playing game music
+                px.playm(4, loop=True)
 
     def update(self):
 
@@ -910,20 +904,11 @@ class App:
         for bullet in OvniBullet.bullets:
             bullet.update(dt)
 
-        if self.state == STATE.play:
-            self.update_play(dt)
-        elif self.state == STATE.title:
-            self.update_title()
-        elif self.state == STATE.newlevel:
-            self.update_newlevel()
-        elif self.state == STATE.retry:
-            self.update_retry()
-        elif self.state == STATE.downscore:
-            self.update_downscore()
-        elif self.state == STATE.gameover:
-            self.update_gameover()
-        elif self.state == STATE.win:
-            self.update_win()
+        states = ('play', dt), ('title', ), ('newlevel', ), ('retry', ), ('downscore', ), ('gameover', ), ('win', )
+        for state in states:
+            if self.state == STATE[state[0]]:
+                exec(f'self.update_{state[0]}(*state[1:])')
+                break
 
     def update_title(self):
         if px.btnp(px.KEY_RETURN):
@@ -1014,49 +999,37 @@ class App:
     def draw(self):
         px.cls(0)
 
-        for asteroid in Asteroid.asteroids:
-            asteroid.draw()
+        objs = (Asteroid.asteroids, Bullet.bullets, self.gfx, Ovni.ovnis, OvniBullet.bullets)
+        for obj in objs:
+            for elem in obj:
+                elem.draw()
 
-        for bullet in Bullet.bullets:
-            bullet.draw()
-
-        for effect in self.gfx:
-            effect.draw()
-
-        for ovni in Ovni.ovnis:
-            ovni.draw()
-        for bullet in OvniBullet.bullets:
-            bullet.draw()
-
-        if self.state == STATE.play:
-            self.ship.draw()
-        elif self.state == STATE.title:
-            center_msg_at_line("ASTEROID", 7, WHITE)
-            center_msg_at_line("keys: right up left space", 9, GREY)
-            center_msg_at_line("[ Press enter ]", 10, DARK_BLUE)
-
-        elif self.state == STATE.newlevel:
-            center_msg_at_line(f"LEVEL {self.level}", 7, GREY)
-            center_msg_at_line(f"{self.level_msg[self.level]}", 8, WHITE)
-            center_msg_at_line(f" Ready ?", 10, GREY)
-            center_msg_at_line(f"{self.countdown}", 11, WHITE)
-            center_msg_at_line("[ Enter to skip ]", 12, DARK_BLUE)
-
-        elif self.state == STATE.retry:
-            center_msg_at_line(f"GAME OVER", 7, WHITE)
-            center_msg_at_line(f" Retry level {self.level} ?", 9, GREY)
-            center_msg_at_line(f"{self.countdown}", 10, WHITE)
-            center_msg_at_line("[ Enter to continue ]", 11, DARK_BLUE)
-
-        elif self.state == STATE.win:
-            center_msg_at_line("YOU DID IT STAR FIGHTER !", 4, WHITE)
-            self.print_highscores_at_line(6)
-            center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
-
-        elif self.state == STATE.gameover:
-            center_msg_at_line("GAME OVER", 4, WHITE)
-            self.print_highscores_at_line(6)
-            center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
+        match self.state:
+            case STATE.play:
+                self.ship.draw()
+            case STATE.title:
+                center_msg_at_line("ASTEROID", 7, WHITE)
+                center_msg_at_line("keys: right up left space", 9, GREY)
+                center_msg_at_line("[ Press enter ]", 10, DARK_BLUE)
+            case STATE.newlevel:
+                center_msg_at_line(f"LEVEL {self.level}", 7, GREY)
+                center_msg_at_line(f"{self.level_msg[self.level]}", 8, WHITE)
+                center_msg_at_line(f" Ready ?", 10, GREY)
+                center_msg_at_line(f"{self.countdown}", 11, WHITE)
+                center_msg_at_line("[ Enter to skip ]", 12, DARK_BLUE)
+            case STATE.retry:
+                center_msg_at_line(f"GAME OVER", 7, WHITE)
+                center_msg_at_line(f" Retry level {self.level} ?", 9, GREY)
+                center_msg_at_line(f"{self.countdown}", 10, WHITE)
+                center_msg_at_line("[ Enter to continue ]", 11, DARK_BLUE)
+            case STATE.win:
+                center_msg_at_line("YOU DID IT STAR FIGHTER !", 4, WHITE)
+                self.print_highscores_at_line(6)
+                center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
+            case STATE.gameover:
+                center_msg_at_line("GAME OVER", 4, WHITE)
+                self.print_highscores_at_line(6)
+                center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
 
         px.text(3, 3, f"Score : {self.score}", GREY)
         px.text(SCREEN_W - (80 / 2), 3, f"Level : {self.level}", GREY)
