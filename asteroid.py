@@ -183,10 +183,12 @@ class BonusFx:
             self.over = True
 
     def draw(self):
+        cond = lambda coeff: self.lifespan < self.duration * coeff
+
         color = WHITE
-        if self.lifespan < self.duration * 0.125:
+        if cond(0.125):
             color = DARK_BLUE
-        elif self.lifespan < self.duration * 0.25:
+        elif cond(0.25):
             color = GREY
 
         pad_dim = 9 / self.duration  # max pad  = 8
