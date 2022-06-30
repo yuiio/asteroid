@@ -118,14 +118,12 @@ def bound_screen(point, radius):
 
 
 def is_out_screen(point, radius):
-    if (
+    return (
         point.x + radius < 0
         or point.x >= SCREEN_W + radius
         or point.y + radius < 0
         or point.y - radius >= SCREEN_H
-    ):
-        return True
-    return False
+    )
 
 
 def rotate(origin, point, angle):
@@ -1016,35 +1014,32 @@ class App:
             for elem in obj:
                 elem.draw()
 
-        if self.state == STATE.play:
-            self.ship.draw()
-        elif self.state == STATE.title:
-            center_msg_at_line("ASTEROID", 7, WHITE)
-            center_msg_at_line("keys: right up left space", 9, GREY)
-            center_msg_at_line("[ Press enter ]", 10, DARK_BLUE)
-
-        elif self.state == STATE.newlevel:
-            center_msg_at_line(f"LEVEL {self.level}", 7, GREY)
-            center_msg_at_line(f"{self.level_msg[self.level]}", 8, WHITE)
-            center_msg_at_line(f" Ready ?", 10, GREY)
-            center_msg_at_line(f"{self.countdown}", 11, WHITE)
-            center_msg_at_line("[ Enter to skip ]", 12, DARK_BLUE)
-
-        elif self.state == STATE.retry:
-            center_msg_at_line(f"GAME OVER", 7, WHITE)
-            center_msg_at_line(f" Retry level {self.level} ?", 9, GREY)
-            center_msg_at_line(f"{self.countdown}", 10, WHITE)
-            center_msg_at_line("[ Enter to continue ]", 11, DARK_BLUE)
-
-        elif self.state == STATE.win:
-            center_msg_at_line("YOU DID IT STAR FIGHTER !", 4, WHITE)
-            self.print_highscores_at_line(6)
-            center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
-
-        elif self.state == STATE.gameover:
-            center_msg_at_line("GAME OVER", 4, WHITE)
-            self.print_highscores_at_line(6)
-            center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
+        match self.state:
+            case STATE.play:
+                self.ship.draw()
+            case STATE.title:
+                center_msg_at_line("ASTEROID", 7, WHITE)
+                center_msg_at_line("keys: right up left space", 9, GREY)
+                center_msg_at_line("[ Press enter ]", 10, DARK_BLUE)
+            case STATE.newlevel:
+                center_msg_at_line(f"LEVEL {self.level}", 7, GREY)
+                center_msg_at_line(f"{self.level_msg[self.level]}", 8, WHITE)
+                center_msg_at_line(f" Ready ?", 10, GREY)
+                center_msg_at_line(f"{self.countdown}", 11, WHITE)
+                center_msg_at_line("[ Enter to skip ]", 12, DARK_BLUE)
+            case STATE.retry:
+                center_msg_at_line(f"GAME OVER", 7, WHITE)
+                center_msg_at_line(f" Retry level {self.level} ?", 9, GREY)
+                center_msg_at_line(f"{self.countdown}", 10, WHITE)
+                center_msg_at_line("[ Enter to continue ]", 11, DARK_BLUE)
+            case STATE.win:
+                center_msg_at_line("YOU DID IT STAR FIGHTER !", 4, WHITE)
+                self.print_highscores_at_line(6)
+                center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
+            case STATE.gameover:
+                center_msg_at_line("GAME OVER", 4, WHITE)
+                self.print_highscores_at_line(6)
+                center_msg_at_line("[ Enter to play again ]", 13, DARK_BLUE)
 
         px.text(3, 3, f"Score : {self.score}", GREY)
         px.text(SCREEN_W - (80 / 2), 3, f"Level : {self.level}", GREY)
